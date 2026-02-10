@@ -191,41 +191,36 @@ app.get('/api/activity', async (req, res) => {
         .filter(f => f.endsWith('.jsonl'))
         .sort()
         .reverse()
-        .slice(0, 5); // Get 5 most recent sessions
+        .slice(0, 3); // Get 3 most recent sessions
       
       for (const file of sessionFiles) {
-        const filePath = path.join(SESSIONS_DIR, file);
-        const fileStream = createReadStream(filePath);
-        const rl = readline.createInterface({
-          input: fileStream,
-          crlfDelay: Infinity
-        });
-        
-        let lineCount = 0;
-        for await (const line of rl) {
-          if (lineCount >= 3) break; // Only read first 3 events per session
-          try {
-            const data = JSON.parse(line);
-            if (data.type === 'message' && data.message?.content) {
-              const content = typeof data.message.content === 'string' 
-                ? data.message.content 
-                : data.message.content[0]?.text || '...';
-              activities.push({
-                time: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                message: content.substring(0, 60) + (content.length > 60 ? '...' : ''),
-                type: data.message.role === 'user' ? 'info' : 'success'
-              });
-              lineCount++;
-            } else if (data.type === 'tool_call') {
-              activities.push({
-                time: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                message: `Tool: ${data.tool?.toolName || 'unknown'}`,
-                type: 'success'
-              });
-              lineCount++;
-            }
-          } catch {}
-        }
+        try {
+          const filePath = path.join(SESSIONS_DIR, file);
+          const content = fs.readFileSync(filePath, 'utf-8');
+          const lines = content.split('\n').filter(line => line.trim()).slice(0, 3);
+          
+          for (const line of lines) {
+            try {
+              const data = JSON.parse(line);
+              if (data.type === 'message' && data.message?.content) {
+                const msgContent = typeof data.message.content === 'string' 
+                  ? data.message.content 
+                  : data.message.content[0]?.text || '...';
+                activities.push({
+                  time: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  message: msgContent.substring(0, 50) + (msgContent.length > 50 ? '...' : ''),
+                  type: data.message.role === 'user' ? 'info' : 'success'
+                });
+              } else if (data.type === 'tool_call') {
+                activities.push({
+                  time: new Date(data.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                  message: `Tool: ${data.tool?.toolName || 'unknown'}`,
+                  type: 'success'
+                });
+              }
+            } catch {}
+          }
+        } catch {}
       }
     }
     
@@ -250,29 +245,23 @@ app.get('/api/sessions', (req, res) => {
     const sessions = [];
     
     if (fs.existsSync(SESSIONS_DIR)) {
-      const files = fs.readdirSync(SESSIONS_DIR).filter(f => f.endsWith('.jsonl'));
+      const files = fs.readdirSync(SESSIONS_DIR)
+        .filter(f => f.endsWith('.jsonl'))
+        .slice(-10); // Last 10 sessions only
       
-      for (const file of files.slice(-20).reverse()) { // Last 20 sessions
-        const filePath = path.join(SESSIONS_DIR, file);
-        const stats = fs.statSync(filePath);
-        const sessionId = file.replace('.jsonl', '');
-        
-        // Read first line to get session info
-        let sessionInfo = {};
+      for (const file of files.reverse()) {
         try {
-          const content = fs.readFileSync(filePath, 'utf-8');
-          const firstLine = content.split('\n')[0];
-          if (firstLine) {
-            sessionInfo = JSON.parse(firstLine);
-          }
+          const filePath = path.join(SESSIONS_DIR, file);
+          const stats = fs.statSync(filePath);
+          const sessionId = file.replace('.jsonl', '');
+          
+          sessions.push({
+            id: sessionId,
+            timestamp: stats.mtime.toISOString(),
+            size: stats.size,
+            cwd: 'unknown'
+          });
         } catch {}
-        
-        sessions.push({
-          id: sessionId,
-          timestamp: sessionInfo.timestamp || stats.mtime.toISOString(),
-          size: stats.size,
-          cwd: sessionInfo.cwd || 'unknown'
-        });
       }
     }
     
