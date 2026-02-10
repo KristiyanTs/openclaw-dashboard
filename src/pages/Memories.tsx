@@ -2,181 +2,78 @@ import { useEffect, useState } from 'react'
 import { 
   FileText, 
   Calendar, 
-  Clock, 
   ChevronRight,
   Search,
-  RefreshCw
+  RefreshCw,
+  WifiOff,
+  AlertCircle
 } from 'lucide-react'
-
-interface MemoryFile {
-  name: string
-  path: string
-  type: 'main' | 'daily'
-  date?: string
-  size?: string
-  lastModified?: string
-}
-
-// Mock data - in real implementation, this would fetch from OpenClaw API
-// fetch('http://localhost:3000/api/memories')
-const mockMemoryFiles: MemoryFile[] = [
-  {
-    name: 'MEMORY.md',
-    path: '/memory/MEMORY.md',
-    type: 'main',
-    size: '12.4 KB',
-    lastModified: '2026-02-10'
-  },
-  {
-    name: '2026-02-10.md',
-    path: '/memory/2026-02-10.md',
-    type: 'daily',
-    date: '2026-02-10',
-    size: '4.2 KB',
-    lastModified: '2026-02-10'
-  },
-  {
-    name: '2026-02-09.md',
-    path: '/memory/2026-02-09.md',
-    type: 'daily',
-    date: '2026-02-09',
-    size: '3.8 KB',
-    lastModified: '2026-02-09'
-  },
-  {
-    name: '2026-02-08.md',
-    path: '/memory/2026-02-08.md',
-    type: 'daily',
-    date: '2026-02-08',
-    size: '5.1 KB',
-    lastModified: '2026-02-08'
-  },
-  {
-    name: '2026-02-07.md',
-    path: '/memory/2026-02-07.md',
-    type: 'daily',
-    date: '2026-02-07',
-    size: '2.9 KB',
-    lastModified: '2026-02-07'
-  },
-  {
-    name: '2026-02-06.md',
-    path: '/memory/2026-02-06.md',
-    type: 'daily',
-    date: '2026-02-06',
-    size: '4.5 KB',
-    lastModified: '2026-02-06'
-  },
-  {
-    name: '2026-02-05.md',
-    path: '/memory/2026-02-05.md',
-    type: 'daily',
-    date: '2026-02-05',
-    size: '3.2 KB',
-    lastModified: '2026-02-05'
-  }
-]
-
-const mockMemoryContent = `# MEMORY.md
-
-## User Profile
-
-**Name:** Kristiyan
-**Profession:** Developer (React, Node, Next, Python, JS)
-**Education:** University of Edinburgh (Honors, 2019)
-**Location:** Bulgaria
-
-## Preferences
-
-- **Hardware:** Planning to buy Mac Mini Pro (M4) for local AI hosting
-- **Morning Brief:** 08:00 AM daily (Tech, Markets, History Fact)
-- **Philosophy:** Determinism
-
-## Active Projects
-
-### ClawFor.biz
-- OpenClaw consultancy website
-- 13 blog posts published
-- $20 setup, $25/hr consulting
-
-### Bookwiz.io
-- AI writing platform (co-founder)
-- 55,000+ authors
-- Supabase backend
-
-## Important Dates
-
-- **Feb 28, 2026:** 30th Birthday
-- **June 2026:** The Weeknd Concert (Munich)
-
-## Contacts
-
-- **Nicole:** Girlfriend (Aug 18, 2003)
-- **Velin:** Best friend (Jul 2, 1996)
-- **Lyubo:** Best friend (Sep 17, 1996)
-
-Last updated: 2026-02-10
-`
+import { api, type MemoryFile } from '../api'
 
 export default function MemoriesPage() {
-  const [files, setFiles] = useState<MemoryFile[]>(mockMemoryFiles)
-  const [selectedFile, setSelectedFile] = useState<MemoryFile | null>(mockMemoryFiles[0])
-  const [content, setContent] = useState<string>(mockMemoryContent)
+  const [files, setFiles] = useState<MemoryFile[]>([])
+  const [selectedFile, setSelectedFile] = useState<MemoryFile | null>(null)
+  const [content, setContent] = useState<string>('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isContentLoading, setIsContentLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isConnected, setIsConnected] = useState(false)
 
-  // In real implementation, fetch from OpenClaw
-  useEffect(() => {
-    // fetch('http://localhost:3000/api/memories')
-    //   .then(res => res.json())
-    //   .then(data => setFiles(data))
-  }, [])
-
-  const handleFileSelect = (file: MemoryFile) => {
+  const fetchFiles = async () => {
     setIsLoading(true)
-    setSelectedFile(file)
+    setError(null)
     
-    // Simulate API call to fetch file content
-    // fetch(\`http://localhost:3000/api/memories/\${file.path}\`)
-    setTimeout(() => {
-      setContent(generateMockContent(file))
+    try {
+      // Check connection first
+      const healthy = await api.healthCheck()
+      setIsConnected(healthy)
+      
+      if (!healthy) {
+        setError('Cannot connect to OpenClaw. Make sure it\'s running on localhost:3000')
+        setIsLoading(false)
+        return
+      }
+
+      const filesData = await api.getMemoryFiles()
+      setFiles(filesData)
+      
+      // Auto-select first file if none selected
+      if (filesData.length > 0 && !selectedFile) {
+        handleFileSelect(filesData[0])
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error occurred')
+      setIsConnected(false)
+    } finally {
       setIsLoading(false)
-    }, 300)
+    }
   }
 
-  const generateMockContent = (file: MemoryFile): string => {
-    if (file.name === 'MEMORY.md') {
-      return mockMemoryContent
-    }
+  const handleFileSelect = async (file: MemoryFile) => {
+    setIsContentLoading(true)
+    setSelectedFile(file)
     
-    return `# ${file.name}
+    try {
+      const fileContent = await api.getMemoryFile(file.path)
+      setContent(fileContent)
+    } catch (err) {
+      setContent(`Error loading file: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      setIsContentLoading(false)
+    }
+  }
 
-## Daily Log - ${file.date}
+  useEffect(() => {
+    fetchFiles()
+  }, [])
 
-### Morning
-- Checked emails and calendar
-- Reviewed overnight agent activity
-- Updated project priorities
-
-### Afternoon
-- Client meetings
-- Code reviews
-- Documentation updates
-
-### Evening
-- Agent optimization
-- Memory consolidation
-- Planning for tomorrow
-
-### Key Learnings
-- New automation opportunities identified
-- Client feedback incorporated
-- System performance improved
-
----
-
-Last updated: ${file.lastModified}
-`
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 B'
+    const k = 1024
+    const sizes = ['B', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
   }
 
   const filteredFiles = files.filter(file => 
@@ -186,12 +83,59 @@ Last updated: ${file.lastModified}
   const dailyFiles = filteredFiles.filter(f => f.type === 'daily')
   const mainFiles = filteredFiles.filter(f => f.type === 'main')
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <RefreshCw className="w-12 h-12 text-emerald-400 animate-spin mx-auto mb-4" />
+          <p className="text-slate-400">Loading memory files...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-8 max-w-7xl mx-auto">
+        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-8 text-center">
+          <WifiOff className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-red-400 mb-2">Connection Error</h2>
+          <p className="text-slate-400 mb-6">{error}</p>
+          <button 
+            onClick={fetchFiles}
+            className="px-6 py-3 bg-emerald-500 text-slate-900 rounded-lg font-medium hover:bg-emerald-400 transition-colors inline-flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Retry Connection
+          </button>
+          <p className="text-slate-500 text-sm mt-4">
+            Make sure OpenClaw is running on localhost:3000
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="p-8 max-w-7xl mx-auto h-screen flex flex-col">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-white mb-2">Memories</h1>
-        <p className="text-slate-400">Browse and manage your agent's memory files</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Memories</h1>
+            <p className="text-slate-400">Browse and manage your agent's memory files</p>
+          </div>
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-full border ${
+            isConnected 
+              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+              : 'bg-red-500/10 border-red-500/20 text-red-400'
+          }`}>
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-emerald-400' : 'bg-red-400'}`} />
+            <span className="text-sm font-medium">
+              {isConnected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {/* Search Bar */}
@@ -213,7 +157,7 @@ Last updated: ${file.lastModified}
           <div className="p-4 border-b border-slate-800 flex items-center justify-between">
             <h2 className="font-semibold text-white">Files</h2>
             <button 
-              onClick={() => window.location.reload()}
+              onClick={fetchFiles}
               className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
               title="Refresh"
             >
@@ -222,70 +166,79 @@ Last updated: ${file.lastModified}
           </div>
           
           <div className="flex-1 overflow-y-auto">
-            {/* Main Memory File */}
-            {mainFiles.length > 0 && (
-              <div className="p-2">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider px-3 py-2">
-                  Main Memory
-                </p>
-                {mainFiles.map(file => (
-                  <button
-                    key={file.path}
-                    onClick={() => handleFileSelect(file)}
-                    className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors ${
-                      selectedFile?.path === file.path
-                        ? 'bg-emerald-500/10 border-l-2 border-emerald-500'
-                        : 'hover:bg-slate-800 border-l-2 border-transparent'
-                    }`}
-                  >
-                    <FileText className={`w-5 h-5 ${
-                      selectedFile?.path === file.path ? 'text-emerald-400' : 'text-slate-400'
-                    }`} />
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${
-                        selectedFile?.path === file.path ? 'text-emerald-400' : 'text-slate-200'
-                      }`}>
-                        {file.name}
-                      </p>
-                      <p className="text-xs text-slate-500">{file.size}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-600" />
-                  </button>
-                ))}
+            {files.length === 0 ? (
+              <div className="p-8 text-center">
+                <AlertCircle className="w-12 h-12 text-slate-600 mx-auto mb-4" />
+                <p className="text-slate-500">No memory files found</p>
               </div>
-            )}
+            ) : (
+              <>
+                {/* Main Memory File */}
+                {mainFiles.length > 0 && (
+                  <div className="p-2">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider px-3 py-2">
+                      Main Memory
+                    </p>
+                    {mainFiles.map(file => (
+                      <button
+                        key={file.path}
+                        onClick={() => handleFileSelect(file)}
+                        className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors ${
+                          selectedFile?.path === file.path
+                            ? 'bg-emerald-500/10 border-l-2 border-emerald-500'
+                            : 'hover:bg-slate-800 border-l-2 border-transparent'
+                        }`}
+                      >
+                        <FileText className={`w-5 h-5 ${
+                          selectedFile?.path === file.path ? 'text-emerald-400' : 'text-slate-400'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium truncate ${
+                            selectedFile?.path === file.path ? 'text-emerald-400' : 'text-slate-200'
+                          }`}>
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-slate-500">{formatBytes(file.size)}</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-600" />
+                      </button>
+                    ))}
+                  </div>
+                )}
 
-            {/* Daily Memory Files */}
-            {dailyFiles.length > 0 && (
-              <div className="p-2 border-t border-slate-800">
-                <p className="text-xs font-medium text-slate-500 uppercase tracking-wider px-3 py-2">
-                  Daily Memories
-                </p>
-                {dailyFiles.map(file => (
-                  <button
-                    key={file.path}
-                    onClick={() => handleFileSelect(file)}
-                    className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors ${
-                      selectedFile?.path === file.path
-                        ? 'bg-emerald-500/10 border-l-2 border-emerald-500'
-                        : 'hover:bg-slate-800 border-l-2 border-transparent'
-                    }`}
-                  >
-                    <Calendar className={`w-5 h-5 ${
-                      selectedFile?.path === file.path ? 'text-emerald-400' : 'text-slate-400'
-                    }`} />
-                    <div className="flex-1 min-w-0">
-                      <p className={`text-sm font-medium truncate ${
-                        selectedFile?.path === file.path ? 'text-emerald-400' : 'text-slate-200'
-                      }`}>
-                        {file.name}
-                      </p>
-                      <p className="text-xs text-slate-500">{file.size} · {file.date}</p>
-                    </div>
-                    <ChevronRight className="w-4 h-4 text-slate-600" />
-                  </button>
-                ))}
-              </div>
+                {/* Daily Memory Files */}
+                {dailyFiles.length > 0 && (
+                  <div className="p-2 border-t border-slate-800">
+                    <p className="text-xs font-medium text-slate-500 uppercase tracking-wider px-3 py-2">
+                      Daily Memories
+                    </p>
+                    {dailyFiles.map(file => (
+                      <button
+                        key={file.path}
+                        onClick={() => handleFileSelect(file)}
+                        className={`w-full flex items-center gap-3 px-3 py-3 text-left transition-colors ${
+                          selectedFile?.path === file.path
+                            ? 'bg-emerald-500/10 border-l-2 border-emerald-500'
+                            : 'hover:bg-slate-800 border-l-2 border-transparent'
+                        }`}
+                      >
+                        <Calendar className={`w-5 h-5 ${
+                          selectedFile?.path === file.path ? 'text-emerald-400' : 'text-slate-400'
+                        }`} />
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm font-medium truncate ${
+                            selectedFile?.path === file.path ? 'text-emerald-400' : 'text-slate-200'
+                          }`}>
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-slate-500">{formatBytes(file.size)} · {file.date}</p>
+                        </div>
+                        <ChevronRight className="w-4 h-4 text-slate-600" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -300,22 +253,23 @@ Last updated: ${file.lastModified}
                   <div>
                     <h2 className="font-semibold text-white">{selectedFile.name}</h2>
                     <p className="text-xs text-slate-500">
-                      {selectedFile.path} · {selectedFile.size} · Modified {selectedFile.lastModified}
+                      {selectedFile.path} · {formatBytes(selectedFile.size)} · Modified {selectedFile.lastModified}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm rounded-lg transition-colors">
-                    Edit
-                  </button>
-                  <button className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-sm rounded-lg transition-colors">
-                    Download
+                  <button 
+                    onClick={() => handleFileSelect(selectedFile)}
+                    className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
+                    title="Refresh"
+                  >
+                    <RefreshCw className="w-4 h-4 text-slate-400" />
                   </button>
                 </div>
               </div>
               
               <div className="flex-1 overflow-auto p-6">
-                {isLoading ? (
+                {isContentLoading ? (
                   <div className="flex items-center justify-center h-full">
                     <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin" />
                   </div>
