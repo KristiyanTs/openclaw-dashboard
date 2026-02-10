@@ -90,9 +90,9 @@ class OpenClawAPI {
   }
 
   // Get specific memory file content
-  async getMemoryFile(path: string): Promise<string> {
+  async getMemoryFile(filePath: string): Promise<string> {
     try {
-      const response = await this.fetch<{ content: string }>(`/api/memories/${encodeURIComponent(path)}`);
+      const response = await this.fetch<{ content: string }>(`/api/memory-file?path=${encodeURIComponent(filePath)}`);
       return response.content;
     } catch (error) {
       console.error('Failed to fetch memory file:', error);
