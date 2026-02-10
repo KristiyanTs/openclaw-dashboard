@@ -1,22 +1,21 @@
 import { useEffect, useState } from 'react'
 import { 
-  Zap, 
   MessageSquare, 
-  Database, 
   Clock, 
   CheckCircle, 
-  AlertCircle,
   Terminal,
   Cpu,
   RefreshCw,
-  WifiOff
+  WifiOff,
+  Database,
+  FileText
 } from 'lucide-react'
-import { api, type Stats, type Activity, type Skill } from '../api'
+import { api, type Stats, type Activity, type Session } from '../api'
 
 export default function HomePage() {
   const [stats, setStats] = useState<Stats | null>(null)
   const [activities, setActivities] = useState<Activity[]>([])
-  const [skills, setSkills] = useState<Skill[]>([])
+  const [sessions, setSessions] = useState<any[]>([])
   const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -35,15 +34,15 @@ export default function HomePage() {
         return
       }
 
-      const [statsData, activityData, skillsData] = await Promise.all([
+      const [statsData, activityData, sessionsData] = await Promise.all([
         api.getStats(),
         api.getActivity(),
-        api.getSkills()
+        api.getSessions()
       ])
 
       setStats(statsData)
       setActivities(activityData)
-      setSkills(skillsData)
+      setSessions(sessionsData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred')
       setIsConnected(false)
@@ -58,13 +57,13 @@ export default function HomePage() {
     return () => clearInterval(interval)
   }, [])
 
-  const formatNumber = (num: number) => num.toLocaleString()
+  const formatNumber = (num: number) => num?.toLocaleString() || '0'
 
   const statCards = stats ? [
-    { title: 'Uptime', value: stats.uptime, icon: Clock, color: 'text-blue-400' },
-    { title: 'Messages', value: formatNumber(stats.messagesProcessed), icon: MessageSquare, color: 'text-green-400' },
-    { title: 'Active Skills', value: stats.activeSkills.toString(), icon: Zap, color: 'text-yellow-400' },
-    { title: 'Last Heartbeat', value: stats.lastHeartbeat, icon: CheckCircle, color: 'text-green-400' }
+    { title: 'Uptime', value: stats.uptime, icon: Clock },
+    { title: 'Messages', value: formatNumber(stats.messagesProcessed), icon: MessageSquare },
+    { title: 'Sessions', value: formatNumber(stats.sessionCount), icon: FileText },
+    { title: 'Model', value: stats.primaryModel?.split('/').pop() || 'unknown', icon: Cpu }
   ] : []
 
   if (isLoading) {
@@ -119,7 +118,7 @@ export default function HomePage() {
                 ? 'bg-green-950/30 border-green-800 text-green-400' 
                 : 'bg-red-950/30 border-red-800 text-red-400'
             }`}>
-              <div className={`w-1.5 h-1.5 ${isConnected ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+              <div className={`w-1.5 h-1.5 ${isConnected ? 'bg-green-400' : 'bg-red-400'}`} />
               <span className="text-xs font-medium uppercase tracking-wider">
                 {isConnected ? 'Connected' : 'Disconnected'}
               </span>
@@ -136,10 +135,10 @@ export default function HomePage() {
             className="bg-neutral-900 border border-neutral-800 p-5 hover:border-neutral-700 transition-colors"
           >
             <div className="flex items-center gap-3 mb-3">
-              <stat.icon className={`w-5 h-5 ${stat.color}`} />
+              <stat.icon className="w-5 h-5 text-green-500" />
               <span className="text-neutral-500 text-sm">{stat.title}</span>
             </div>
-            <p className="text-2xl font-bold text-white">{stat.value}</p>
+            <p className="text-2xl font-bold text-white truncate">{stat.value}</p>
           </div>
         ))}
       </div>
@@ -168,110 +167,99 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* System Status */}
+        {/* Recent Sessions */}
         <div className="bg-neutral-900 border border-neutral-800">
+          <div className="p-4 border-b border-neutral-800">
+            <h2 className="font-medium text-white flex items-center gap-2">
+              <Database className="w-4 h-4 text-green-500" />
+              Recent Sessions
+            </h2>
+          </div>
+          <div className="p-4 space-y-2">
+            {sessions.length > 0 ? (
+              sessions.slice(0, 8).map((session) => (
+                <div key={session.id} className="flex items-center justify-between text-sm py-2 border-b border-neutral-800 last:border-0">
+                  <div className="flex items-center gap-3">
+                    <FileText className="w-4 h-4 text-neutral-600" />
+                    <span className="text-neutral-300 font-mono text-xs">{session.id.slice(0, 8)}...</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-neutral-400 text-xs">
+                      {new Date(session.timestamp).toLocaleDateString()}
+                    </p>
+                    <p className="text-neutral-600 text-xs">{(session.size / 1024).toFixed(1)} KB</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-neutral-600 text-center py-8">No sessions found</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* System Status */}
+      {stats && (
+        <div className="mt-6 bg-neutral-900 border border-neutral-800">
           <div className="p-4 border-b border-neutral-800">
             <h2 className="font-medium text-white flex items-center gap-2">
               <Cpu className="w-4 h-4 text-green-500" />
               System Status
             </h2>
           </div>
-          <div className="p-4 space-y-4">
-            {stats && (
-              <>
-                <div>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-neutral-500">Memory Usage</span>
-                    <span className="text-neutral-300">{stats.memory.percentage}%</span>
-                  </div>
-                  <div className="h-1 bg-neutral-800">
-                    <div 
-                      className="h-full bg-green-500 transition-all duration-500" 
-                      style={{ width: `${stats.memory.percentage}%` }} 
-                    />
-                  </div>
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-neutral-500">Memory Usage</span>
+                  <span className="text-neutral-300">{stats.memory?.percentage || 0}%</span>
                 </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-neutral-500">API Calls (24h)</span>
-                    <span className="text-neutral-300">{formatNumber(stats.apiCalls.count)}</span>
-                  </div>
-                  <div className="h-1 bg-neutral-800">
-                    <div 
-                      className="h-full bg-blue-500 transition-all duration-500" 
-                      style={{ width: `${stats.apiCalls.percentage}%` }} 
-                    />
-                  </div>
+                <div className="h-1 bg-neutral-800">
+                  <div 
+                    className="h-full bg-green-500 transition-all duration-500" 
+                    style={{ width: `${Math.min(stats.memory?.percentage || 0, 100)}%` }} 
+                  />
                 </div>
-                <div>
-                  <div className="flex justify-between text-xs mb-1.5">
-                    <span className="text-neutral-500">Storage</span>
-                    <span className="text-neutral-300">{stats.storage.percentage}%</span>
-                  </div>
-                  <div className="h-1 bg-neutral-800">
-                    <div 
-                      className="h-full bg-yellow-500 transition-all duration-500" 
-                      style={{ width: `${stats.storage.percentage}%` }} 
-                    />
-                  </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-neutral-500">API Activity</span>
+                  <span className="text-neutral-300">{formatNumber(stats.apiCalls?.count)}</span>
                 </div>
-              </>
-            )}
+                <div className="h-1 bg-neutral-800">
+                  <div 
+                    className="h-full bg-blue-500 transition-all duration-500" 
+                    style={{ width: `${Math.min(stats.apiCalls?.percentage || 0, 100)}%` }} 
+                  />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs mb-1.5">
+                  <span className="text-neutral-500">Storage</span>
+                  <span className="text-neutral-300">{stats.storage?.percentage || 0}%</span>
+                </div>
+                <div className="h-1 bg-neutral-800">
+                  <div 
+                    className="h-full bg-yellow-500 transition-all duration-500" 
+                    style={{ width: `${Math.min(stats.storage?.percentage || 0, 100)}%` }} 
+                  />
+                </div>
+              </div>
+            </div>
 
-            <div className="pt-4 border-t border-neutral-800 space-y-2">
-              <div className="flex items-center gap-2 text-sm">
+            <div className="mt-6 pt-4 border-t border-neutral-800 grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-500" />
-                <span className="text-neutral-400">OpenAI API: Connected</span>
+                <span className="text-neutral-400">OpenClaw Gateway: Running</span>
               </div>
-              <div className="flex items-center gap-2 text-sm">
+              <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-500" />
-                <span className="text-neutral-400">Telegram Bot: Active</span>
-              </div>
-              <div className="flex items-center gap-2 text-sm">
-                <AlertCircle className="w-4 h-4 text-yellow-500" />
-                <span className="text-neutral-400">Email: Not configured</span>
+                <span className="text-neutral-400">Session Storage: {sessions.length} sessions</span>
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Skills Section */}
-      <div className="mt-6 bg-neutral-900 border border-neutral-800">
-        <div className="p-4 border-b border-neutral-800">
-          <h2 className="font-medium text-white flex items-center gap-2">
-            <Database className="w-4 h-4 text-green-500" />
-            Active Skills
-          </h2>
-        </div>
-        <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-          {skills.length > 0 ? (
-            skills.map((skill) => (
-              <div 
-                key={skill.name}
-                className="bg-neutral-950 border border-neutral-800 p-3 hover:border-neutral-700 transition-colors"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs font-medium text-white font-mono truncate" title={skill.name}>
-                    {skill.name}
-                  </span>
-                  <div className={`w-1.5 h-1.5 ${
-                    skill.status === 'active' ? 'bg-green-500' : 
-                    skill.status === 'paused' ? 'bg-yellow-500' : 'bg-red-500'
-                  }`} />
-                </div>
-                <p className="text-xs text-neutral-600">
-                  {skill.calls.toLocaleString()} calls
-                </p>
-              </div>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-8 text-neutral-600">
-              No skills configured
-            </div>
-          )}
-        </div>
-      </div>
+      )}
     </div>
   )
 }

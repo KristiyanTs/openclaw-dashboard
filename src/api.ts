@@ -6,8 +6,9 @@ const API_BASE_URL = import.meta.env.VITE_OPENCLAW_URL || 'http://localhost:3000
 interface Stats {
   uptime: string;
   messagesProcessed: number;
-  activeSkills: number;
+  sessionCount: number;
   lastHeartbeat: string;
+  primaryModel?: string;
   memory: {
     used: number;
     total: number;
@@ -22,6 +23,13 @@ interface Stats {
     total: number;
     percentage: number;
   };
+}
+
+interface Session {
+  id: string;
+  timestamp: string;
+  size: number;
+  cwd: string;
 }
 
 interface MemoryFile {
@@ -110,6 +118,16 @@ class OpenClawAPI {
     }
   }
 
+  // Get sessions list
+  async getSessions(): Promise<Session[]> {
+    try {
+      return await this.fetch<Session[]>('/api/sessions');
+    } catch (error) {
+      console.error('Failed to fetch sessions:', error);
+      throw error;
+    }
+  }
+
   // Get active skills
   async getSkills(): Promise<Skill[]> {
     try {
@@ -135,4 +153,4 @@ class OpenClawAPI {
 }
 
 export const api = new OpenClawAPI();
-export type { Stats, MemoryFile, Activity, Skill };
+export type { Stats, MemoryFile, Activity, Skill, Session };
