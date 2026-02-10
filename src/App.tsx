@@ -6,57 +6,57 @@ import './index.css'
 
 function Sidebar() {
   return (
-    <aside className="w-64 bg-slate-900 text-slate-200 min-h-screen flex flex-col border-r border-slate-800">
+    <aside className="w-64 bg-neutral-900 border-r border-neutral-800 min-h-screen flex flex-col">
       {/* Header */}
-      <div className="p-6 border-b border-slate-800">
+      <div className="p-6 border-b border-neutral-800">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-            <Terminal className="w-6 h-6 text-slate-900" />
+          <div className="w-10 h-10 bg-green-500 flex items-center justify-center">
+            <Terminal className="w-6 h-6 text-black" />
           </div>
           <div>
-            <h1 className="font-bold text-lg text-white">OpenClaw</h1>
-            <p className="text-xs text-slate-400">Dashboard</p>
+            <h1 className="font-bold text-lg text-white tracking-tight">OpenClaw</h1>
+            <p className="text-xs text-neutral-500 uppercase tracking-wider">Dashboard</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-2 space-y-0.5">
         <NavLink
           to="/"
           className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+            `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
               isActive
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-green-500/10 text-green-400 border-l-2 border-green-500'
+                : 'text-neutral-400 hover:text-white hover:bg-neutral-800 border-l-2 border-transparent'
             }`
           }
         >
-          <Home className="w-5 h-5" />
-          <span className="font-medium">Home</span>
+          <Home className="w-4 h-4" />
+          <span>Home</span>
         </NavLink>
 
         <NavLink
           to="/memories"
           className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+            `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
               isActive
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-green-500/10 text-green-400 border-l-2 border-green-500'
+                : 'text-neutral-400 hover:text-white hover:bg-neutral-800 border-l-2 border-transparent'
             }`
           }
         >
-          <BookOpen className="w-5 h-5" />
-          <span className="font-medium">Memories</span>
+          <BookOpen className="w-4 h-4" />
+          <span>Memories</span>
         </NavLink>
 
         <NavLink
           to="/activity"
           className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+            `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
               isActive
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-green-500/10 text-green-400 border-l-2 border-green-500'
+                : 'text-neutral-400 hover:text-white hover:bg-neutral-800 border-l-2 border-transparent'
             }`
           }
           onClick={(e) => {
@@ -64,17 +64,17 @@ function Sidebar() {
             alert('Coming soon!')
           }}
         >
-          <Activity className="w-5 h-5" />
-          <span className="font-medium">Activity</span>
+          <Activity className="w-4 h-4" />
+          <span>Activity</span>
         </NavLink>
 
         <NavLink
           to="/settings"
           className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+            `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
               isActive
-                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'
+                ? 'bg-green-500/10 text-green-400 border-l-2 border-green-500'
+                : 'text-neutral-400 hover:text-white hover:bg-neutral-800 border-l-2 border-transparent'
             }`
           }
           onClick={(e) => {
@@ -82,16 +82,16 @@ function Sidebar() {
             alert('Coming soon!')
           }}
         >
-          <Settings className="w-5 h-5" />
-          <span className="font-medium">Settings</span>
+          <Settings className="w-4 h-4" />
+          <span>Settings</span>
         </NavLink>
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-slate-800">
-        <div className="text-xs text-slate-500">
-          <p>Connected to:</p>
-          <p className="text-emerald-400 font-mono">localhost:3000</p>
+      <div className="p-4 border-t border-neutral-800">
+        <div className="text-xs text-neutral-600">
+          <p className="uppercase tracking-wider mb-1">Connected to</p>
+          <p className="text-green-500 font-mono">localhost:3000</p>
         </div>
       </div>
     </aside>
@@ -101,7 +101,7 @@ function Sidebar() {
 function App() {
   return (
     <Router>
-      <div className="flex min-h-screen bg-slate-950">
+      <div className="flex min-h-screen bg-neutral-950">
         <Sidebar />
         <main className="flex-1 overflow-auto">
           <Routes>

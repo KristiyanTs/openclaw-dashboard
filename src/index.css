@@ -1,3 +1,108 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Flat Design System - No gradients, no shadows */
+
+:root {
+  /* Primary Colors */
+  --color-bg: #0a0a0a;
+  --color-surface: #141414;
+  --color-surface-hover: #1a1a1a;
+  --color-border: #262626;
+  --color-border-hover: #404040;
+  
+  /* Text Colors */
+  --color-text: #fafafa;
+  --color-text-secondary: #a3a3a3;
+  --color-text-muted: #525252;
+  
+  /* Accent Colors - Flat */
+  --color-accent: #22c55e;
+  --color-accent-hover: #16a34a;
+  --color-accent-bg: #14532d;
+  
+  /* Status Colors */
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+}
+
+/* Base Styles */
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Remove default focus rings, add flat outline */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+/* Flat Button Base */
+.btn {
+  @apply px-4 py-2 font-medium transition-colors duration-150;
+  @apply border border-transparent;
+  @apply bg-transparent text-neutral-300;
+}
+
+.btn:hover {
+  @apply bg-neutral-800 text-white;
+}
+
+.btn:active {
+  @apply bg-neutral-700;
+}
+
+/* Flat Card */
+.card {
+  @apply bg-neutral-900 border border-neutral-800;
+}
+
+.card-hover:hover {
+  @apply border-neutral-700;
+}
+
+/* Flat Input */
+.input {
+  @apply bg-neutral-900 border border-neutral-800 px-4 py-2;
+  @apply text-white placeholder-neutral-500;
+  @apply transition-colors duration-150;
+}
+
+.input:focus {
+  @apply border-neutral-600;
+}
+
+/* Scrollbar - Minimal */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}
+
+/* Selection */
+::selection {
+  background-color: var(--color-accent-bg);
+  color: var(--color-accent);
+}
