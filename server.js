@@ -93,6 +93,21 @@ app.get('/api/memories', (req, res) => {
   try {
     const files = [];
     
+    // Check for MEMORY.md in root workspace (main memory file)
+    const mainMemoryPath = path.join(OPENCLAW_WORKSPACE, 'MEMORY.md');
+    if (fs.existsSync(mainMemoryPath)) {
+      const stats = fs.statSync(mainMemoryPath);
+      files.push({
+        name: 'MEMORY.md',
+        path: '/MEMORY.md',
+        type: 'main',
+        date: null,
+        size: stats.size,
+        lastModified: stats.mtime.toISOString().split('T')[0]
+      });
+    }
+    
+    // Check for daily memory files in memory/ directory
     if (fs.existsSync(MEMORY_DIR)) {
       const entries = fs.readdirSync(MEMORY_DIR);
       
@@ -102,10 +117,6 @@ app.get('/api/memories', (req, res) => {
           const stats = fs.statSync(filePath);
           
           let type = 'daily';
-          if (entry === 'MEMORY.md') {
-            type = 'main';
-          }
-          
           let date = null;
           const dateMatch = entry.match(/(\d{4}-\d{2}-\d{2})/);
           if (dateMatch) {
@@ -122,13 +133,14 @@ app.get('/api/memories', (req, res) => {
           });
         }
       }
-      
-      files.sort((a, b) => {
-        if (a.type === 'main') return -1;
-        if (b.type === 'main') return 1;
-        return (b.date || '').localeCompare(a.date || '');
-      });
     }
+    
+    // Sort: main first, then by date descending
+    files.sort((a, b) => {
+      if (a.type === 'main') return -1;
+      if (b.type === 'main') return 1;
+      return (b.date || '').localeCompare(a.date || '');
+    });
     
     res.json(files);
   } catch (error) {
