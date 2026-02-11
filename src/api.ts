@@ -29,7 +29,18 @@ interface Session {
   id: string;
   timestamp: string;
   size: number;
-  cwd: string;
+  messageCount: number;
+  isActive?: boolean;
+}
+
+interface SessionMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'tool' | 'tool_result';
+  content: string;
+  timestamp: string;
+  model?: string;
+  toolName?: string;
+  toolArgs?: Record<string, unknown>;
 }
 
 interface MemoryFile {
@@ -48,9 +59,66 @@ interface Activity {
 }
 
 interface Skill {
+  id: string;
   name: string;
-  status: 'active' | 'paused' | 'error';
-  calls: number;
+  type: 'custom' | 'built-in';
+  source: 'user' | 'openclaw';
+  path: string;
+  hasSkillMd: boolean;
+  status: 'active' | 'inactive' | 'needs-setup';
+  statusReason?: string;
+  hasCredentials?: boolean;
+  binariesOk?: boolean;
+  missingBinaries?: string[];
+  setupDetails?: Array<{
+    type: 'credentials' | 'env' | 'config';
+    location?: string;
+    files?: string[];
+    variables?: string[];
+  }>;
+}
+
+interface SkillDetail {
+  id: string;
+  name: string;
+  type: string;
+  path: string;
+  content: string;
+  files: { path: string; type: string; size?: number }[];
+}
+
+interface CronJob {
+  id: string;
+  name: string;
+  enabled: boolean;
+  agentId: string;
+  createdAtMs: number;
+  updatedAtMs: number;
+  schedule: {
+    kind: 'cron' | 'at' | 'every';
+    expr?: string;
+    at?: string;
+    everyMs?: number;
+    tz?: string;
+  };
+  sessionTarget: 'main' | 'isolated';
+  wakeMode: 'next-heartbeat' | 'now';
+  payload: {
+    kind: 'agentTurn' | 'systemEvent';
+    message?: string;
+    text?: string;
+  };
+  delivery?: {
+    mode: 'none' | 'announce';
+  };
+  state?: {
+    nextRunAtMs?: number;
+    lastRunAtMs?: number;
+    lastStatus?: string;
+    lastDurationMs?: number;
+    consecutiveErrors?: number;
+    manuallyTriggered?: boolean;
+  };
 }
 
 class OpenClawAPI {
@@ -128,12 +196,47 @@ class OpenClawAPI {
     }
   }
 
-  // Get active skills
+  // Get all skills
   async getSkills(): Promise<Skill[]> {
     try {
       return await this.fetch<Skill[]>('/api/skills');
     } catch (error) {
       console.error('Failed to fetch skills:', error);
+      throw error;
+    }
+  }
+
+  // Get skill details
+  async getSkill(id: string): Promise<SkillDetail> {
+    try {
+      return await this.fetch<SkillDetail>(`/api/skills/${id}`);
+    } catch (error) {
+      console.error('Failed to fetch skill:', error);
+      throw error;
+    }
+  }
+
+  // Update skill (custom only)
+  async updateSkill(id: string, content: string): Promise<{ success: boolean; id: string }> {
+    try {
+      return await this.fetch<{ success: boolean; id: string }>(`/api/skills/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ content }),
+      });
+    } catch (error) {
+      console.error('Failed to update skill:', error);
+      throw error;
+    }
+  }
+
+  // Delete skill (custom only)
+  async deleteSkill(id: string): Promise<{ success: boolean; deleted: string }> {
+    try {
+      return await this.fetch<{ success: boolean; deleted: string }>(`/api/skills/${id}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error('Failed to delete skill:', error);
       throw error;
     }
   }
@@ -150,7 +253,86 @@ class OpenClawAPI {
       return false;
     }
   }
+
+  // Get all cron jobs
+  async getCronJobs(): Promise<{ jobs: CronJob[]; count: number }> {
+    try {
+      return await this.fetch<{ jobs: CronJob[]; count: number }>('/api/cron/jobs');
+    } catch (error) {
+      console.error('Failed to fetch cron jobs:', error);
+      throw error;
+    }
+  }
+
+  // Get single cron job
+  async getCronJob(id: string): Promise<CronJob> {
+    try {
+      return await this.fetch<CronJob>(`/api/cron/jobs/${id}`);
+    } catch (error) {
+      console.error('Failed to fetch cron job:', error);
+      throw error;
+    }
+  }
+
+  // Update cron job
+  async updateCronJob(id: string, updates: Partial<CronJob>): Promise<CronJob> {
+    try {
+      return await this.fetch<CronJob>(`/api/cron/jobs/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      });
+    } catch (error) {
+      console.error('Failed to update cron job:', error);
+      throw error;
+    }
+  }
+
+  // Delete cron job
+  async deleteCronJob(id: string): Promise<{ success: boolean; deleted: CronJob }> {
+    try {
+      return await this.fetch<{ success: boolean; deleted: CronJob }>(`/api/cron/jobs/${id}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error('Failed to delete cron job:', error);
+      throw error;
+    }
+  }
+
+  // Run cron job now
+  async runCronJob(id: string): Promise<{ success: boolean; message: string; job: CronJob }> {
+    try {
+      return await this.fetch<{ success: boolean; message: string; job: CronJob }>(`/api/cron/jobs/${id}/run`, {
+        method: 'POST',
+      });
+    } catch (error) {
+      console.error('Failed to run cron job:', error);
+      throw error;
+    }
+  }
+
+  // Get session details
+  async getSession(id: string): Promise<{ id: string; messages: SessionMessage[]; messageCount: number }> {
+    try {
+      return await this.fetch<{ id: string; messages: SessionMessage[]; messageCount: number }>(`/api/sessions/${id}`);
+    } catch (error) {
+      console.error('Failed to fetch session details:', error);
+      throw error;
+    }
+  }
+
+  // Delete session
+  async deleteSession(id: string): Promise<{ success: boolean; deleted: string }> {
+    try {
+      return await this.fetch<{ success: boolean; deleted: string }>(`/api/sessions/${id}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error('Failed to delete session:', error);
+      throw error;
+    }
+  }
 }
 
 export const api = new OpenClawAPI();
-export type { Stats, MemoryFile, Activity, Skill, Session };
+export type { Stats, MemoryFile, Activity, Skill, SkillDetail, Session, SessionMessage, CronJob };

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { marked } from 'marked'
 import { 
   FileText, 
   Calendar, 
@@ -256,15 +257,16 @@ export default function MemoriesPage() {
                 </button>
               </div>
               
-              <div className="flex-1 overflow-auto p-4">
+              <div className="flex-1 overflow-auto">
                 {isContentLoading ? (
                   <div className="flex items-center justify-center h-full">
                     <RefreshCw className="w-6 h-6 text-green-500 animate-spin" />
                   </div>
                 ) : (
-                  <pre className="text-neutral-300 text-sm leading-relaxed whitespace-pre-wrap font-mono">
-                    {content}
-                  </pre>
+                  <div 
+                    className="markdown-body p-6"
+                    dangerouslySetInnerHTML={{ __html: marked.parse(content, { gfm: true }) }}
+                  />
                 )}
               </div>
             </>

@@ -3,19 +3,16 @@ import {
   MessageSquare, 
   Clock, 
   CheckCircle, 
-  Terminal,
   Cpu,
   RefreshCw,
   WifiOff,
-  Database,
-  FileText
+  FileText,
+  Zap
 } from 'lucide-react'
-import { api, type Stats, type Activity, type Session } from '../api'
+import { api, type Stats } from '../api'
 
 export default function HomePage() {
   const [stats, setStats] = useState<Stats | null>(null)
-  const [activities, setActivities] = useState<Activity[]>([])
-  const [sessions, setSessions] = useState<any[]>([])
   const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -34,15 +31,8 @@ export default function HomePage() {
         return
       }
 
-      const [statsData, activityData, sessionsData] = await Promise.all([
-        api.getStats(),
-        api.getActivity(),
-        api.getSessions()
-      ])
-
+      const statsData = await api.getStats()
       setStats(statsData)
-      setActivities(activityData)
-      setSessions(sessionsData)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred')
       setIsConnected(false)
@@ -143,61 +133,6 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Recent Activity */}
-        <div className="bg-neutral-900 border border-neutral-800">
-          <div className="p-4 border-b border-neutral-800">
-            <h2 className="font-medium text-white flex items-center gap-2">
-              <Terminal className="w-4 h-4 text-green-500" />
-              Recent Activity
-            </h2>
-          </div>
-          <div className="p-4 space-y-3">
-            {activities.length > 0 ? (
-              activities.map((activity, i) => (
-                <div key={i} className="flex items-start gap-3 text-sm">
-                  <span className="text-neutral-600 font-mono text-xs">{activity.time}</span>
-                  <span className="text-neutral-300">{activity.message}</span>
-                </div>
-              ))
-            ) : (
-              <p className="text-neutral-600 text-center py-8">No recent activity</p>
-            )}
-          </div>
-        </div>
-
-        {/* Recent Sessions */}
-        <div className="bg-neutral-900 border border-neutral-800">
-          <div className="p-4 border-b border-neutral-800">
-            <h2 className="font-medium text-white flex items-center gap-2">
-              <Database className="w-4 h-4 text-green-500" />
-              Recent Sessions
-            </h2>
-          </div>
-          <div className="p-4 space-y-2">
-            {sessions.length > 0 ? (
-              sessions.slice(0, 8).map((session) => (
-                <div key={session.id} className="flex items-center justify-between text-sm py-2 border-b border-neutral-800 last:border-0">
-                  <div className="flex items-center gap-3">
-                    <FileText className="w-4 h-4 text-neutral-600" />
-                    <span className="text-neutral-300 font-mono text-xs">{session.id.slice(0, 8)}...</span>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-neutral-400 text-xs">
-                      {new Date(session.timestamp).toLocaleDateString()}
-                    </p>
-                    <p className="text-neutral-600 text-xs">{(session.size / 1024).toFixed(1)} KB</p>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-neutral-600 text-center py-8">No sessions found</p>
-            )}
-          </div>
-        </div>
-      </div>
-
       {/* System Status */}
       {stats && (
         <div className="mt-6 bg-neutral-900 border border-neutral-800">
@@ -254,7 +189,7 @@ export default function HomePage() {
               </div>
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-4 h-4 text-green-500" />
-                <span className="text-neutral-400">Session Storage: {sessions.length} sessions</span>
+                <span className="text-neutral-400">Status: Online</span>
               </div>
             </div>
           </div>

@@ -1,7 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, NavLink } from 'react-router-dom'
-import { Home, BookOpen, Terminal, Settings, Activity } from 'lucide-react'
+import { Home, BookOpen, Terminal, Settings, Clock, FileText, Puzzle } from 'lucide-react'
 import HomePage from './pages/Home'
 import MemoriesPage from './pages/Memories'
+import CronJobsPage from './pages/CronJobs'
+import SessionsPage from './pages/Sessions'
+import SkillsPage from './pages/Skills'
 import './index.css'
 
 function Sidebar() {
@@ -51,7 +54,7 @@ function Sidebar() {
         </NavLink>
 
         <NavLink
-          to="/activity"
+          to="/cron"
           className={({ isActive }) =>
             `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
               isActive
@@ -59,13 +62,37 @@ function Sidebar() {
                 : 'text-neutral-400 hover:text-white hover:bg-neutral-800 border-l-2 border-transparent'
             }`
           }
-          onClick={(e) => {
-            e.preventDefault()
-            alert('Coming soon!')
-          }}
         >
-          <Activity className="w-4 h-4" />
-          <span>Activity</span>
+          <Clock className="w-4 h-4" />
+          <span>Cron Jobs</span>
+        </NavLink>
+
+        <NavLink
+          to="/sessions"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-green-500/10 text-green-400 border-l-2 border-green-500'
+                : 'text-neutral-400 hover:text-white hover:bg-neutral-800 border-l-2 border-transparent'
+            }`
+          }
+        >
+          <FileText className="w-4 h-4" />
+          <span>Sessions</span>
+        </NavLink>
+
+        <NavLink
+          to="/skills"
+          className={({ isActive }) =>
+            `flex items-center gap-3 px-4 py-2.5 text-sm font-medium transition-colors ${
+              isActive
+                ? 'bg-green-500/10 text-green-400 border-l-2 border-green-500'
+                : 'text-neutral-400 hover:text-white hover:bg-neutral-800 border-l-2 border-transparent'
+            }`
+          }
+        >
+          <Puzzle className="w-4 h-4" />
+          <span>Skills</span>
         </NavLink>
 
         <NavLink
@@ -107,6 +134,9 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/memories" element={<MemoriesPage />} />
+            <Route path="/cron" element={<CronJobsPage />} />
+            <Route path="/sessions" element={<SessionsPage />} />
+            <Route path="/skills" element={<SkillsPage />} />
           </Routes>
         </main>
       </div>
