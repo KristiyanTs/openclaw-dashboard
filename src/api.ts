@@ -84,6 +84,7 @@ interface SkillDetail {
   type: string;
   path: string;
   content: string;
+  setupInstructions?: string;
   files: { path: string; type: string; size?: number }[];
 }
 
